@@ -1,3 +1,5 @@
+import { pgTable, serial, text, timestamp, integer, boolean, vector, index } from 'drizzle-orm/pg-core'
+
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
@@ -30,7 +32,6 @@ export const enrollments = pgTable('enrollments', {
 })
 
 
-import { pgTable, serial, text, timestamp, integer, boolean, vector, index } from 'drizzle-orm/pg-core'
 
 export const lessonChunks = pgTable('lesson_chunks', {
   id: serial('id').primaryKey(),
