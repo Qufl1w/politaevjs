@@ -1,16 +1,16 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { auth } from '@/auth'
 import LogoutButton from './logout-button'
-export default async function DashboardPage() {
-  const cookieStore = await cookies()
-  const userCookie = cookieStore.get('user')
 
-  if (!userCookie) {
+export default async function DashboardPage() {
+  const session = await auth()
+
+  if (!session?.user) {
     redirect('/login')
   }
 
-  const user = JSON.parse(userCookie.value) as { id: number, name: string, email: string }
+  const user = session.user as { id: string, name: string, email: string }
 
   const enrolledCourses = [
     { id: 1, title: 'JavaScript основы', tag: 'JS', progress: 60, lessons: 6, completed: 4 },
@@ -18,6 +18,8 @@ export default async function DashboardPage() {
   ]
   return (
     <main style={{ background: '#0f0f0f', minHeight: '100vh', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>
+
+      
       {/* Навбар */}
       <nav style={{ background: '#141414', borderBottom: '0.5px solid #1e1e1e', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

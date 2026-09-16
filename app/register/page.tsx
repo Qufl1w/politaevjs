@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 
 export default function RegisterPage() {
   const [name, setName] = useState('')
@@ -22,13 +23,23 @@ export default function RegisterPage() {
     })
 
     const data = await res.json()
-    setLoading(false)
-
     if (!res.ok) {
       setError(data.error)
       return
     }
+     const result = await signIn('credentials', {
+      redirect: false,
+      email,
+      password,
+    })
 
+    setLoading(false)
+
+    if (result?.error) {
+      router.push('/login')
+      return
+    }
+    window.location.href = '/dashboard'
     router.push('/login')
   }
 

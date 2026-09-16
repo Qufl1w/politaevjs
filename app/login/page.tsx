@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { signIn } from '@/auth'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
@@ -15,21 +15,21 @@ export default function LoginPage() {
   setError('')
   setLoading(true)
 
-  const res = await fetch('/api/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+  const result = await signIn('credentials', {
+    redirect: false,
+    email,
+    password,
   })
 
-  const data = await res.json()
   setLoading(false)
 
-  if (!res.ok) {
-    setError(data.error)
+  if (result?.error) {
+    setError('Неверный email или пароль')
     return
   }
 
   window.location.href = '/dashboard'
+  router.push('/dashboard')
 }
 
   return (
