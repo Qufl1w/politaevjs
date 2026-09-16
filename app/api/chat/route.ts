@@ -61,9 +61,15 @@ const termMap: Record<string, string> = {
   'тайпскрипт': 'typescript',
 }
 
+// сделал сортировку по убыванию длины ключа для слов выше
 function normalizeQuestion(question: string): string {
   let result = question.toLowerCase()
-  for (const [ru, en] of Object.entries(termMap)) {
+
+  const sortedEntries = Object.entries(termMap).sort(
+    ([a], [b]) => b.length - a.length
+  )
+
+  for (const [ru, en] of sortedEntries) {
     result = result.replaceAll(ru, en)
   }
   return result
@@ -74,7 +80,7 @@ const greetings = ['привет', 'здравствуй', 'здравствуй
 function isPureGreeting(question: string): boolean {
   let cleaned = question.toLowerCase().trim()
   for (const g of greetings) {
-    cleaned = cleaned.replace(g, '')
+    cleaned = cleaned.replaceAll(g, '')
   }
   // убираем знаки препинания и пробелы, что осталось
   cleaned = cleaned.replace(/[,.!?\s]/g, '')
@@ -93,8 +99,8 @@ export async function POST(req: NextRequest) {
   const normalizedQuestion = normalizeQuestion(question)
 
   
-  const { db } = await import('@/lib/db')
-
+  const { db } = await import('@/lib/db') // <--- стоп, фиксируем грязюку. не забываем, что он находится здесь и зачем он здесь.
+ 
   const questionEmbedding = await getEmbedding(normalizedQuestion)
 
   const similarity = sql<number>`1 - (${cosineDistance(lessonChunks.embedding, questionEmbedding)})`
