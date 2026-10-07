@@ -41,7 +41,7 @@ npm install
 \`\`\`
 
 ### 3. Настройка переменных окружения
-Создайте `.env` и `.env.local` на основе `.env.example` (если его нет — создайте с `DATABASE_URL`, `AUTH_SECRET`, `OLLAMA_URL`).
+Создайте `.env` и `.env.local` на основе `.env.example` (если его нет — создайте с `DATABASE_URL`, `AUTH_SECRET`, `OLLAMA_URL`)
 
 ### 4. Запуск базы данных
 \`\`\`bash
@@ -52,7 +52,7 @@ docker-compose up -d
 \`\`\`bash
 npm run dev
 \`\`\`
-Приложение будет доступно по адресу `http://localhost:3000`.
+Приложение будет доступно по адресу `http://localhost:3000`
 
 ### Требования
-Для работы чат-ассистента локально установите [Ollama](https://ollama.com) и скачайте модель `qwen2.5:14b`.
+Для работы чат-ассистента локально установите [Ollama](https://ollama.com) и скачайте модель `qwen2.5:14b`
