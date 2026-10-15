@@ -6,6 +6,11 @@ import { redirect } from 'next/navigation'
 
 export default async function CoursePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const courseId = Number(id)
+
+if (!Number.isInteger(courseId) || courseId < 1) {
+  redirect('/courses')
+}
 
   const courseResult = await db.select().from(courses).where(eq(courses.id, Number(id)))
   const course = courseResult[0]
@@ -14,7 +19,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
     redirect('/courses')
   }
 
-  const courseLessons = await db.select().from(lessons).where(eq(lessons.courseId, Number(id)))
+  const courseLessons = await db.select().from(lessons).where(eq(lessons.courseId, courseId))
 
   return (
     <main style={{ background: '#0f0f0f', minHeight: '100vh', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>

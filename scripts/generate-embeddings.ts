@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 import { lessons, lessonChunks } from '../lib/db/schema'
@@ -29,8 +30,10 @@ async function main() {
     const chunks = chunkText(lesson.content)
     console.log(`Урок "${lesson.title}": ${chunks.length} чанков`)
 
+await db.delete(lessonChunks).where(eq(lessonChunks.lessonId, lesson.id))
+
     for (const chunk of chunks) {
-      const embedding = await getEmbedding(chunk)
+      const embedding = await getEmbedding('search_document' + chunk)
       await db.insert(lessonChunks).values({
         lessonId: lesson.id,
         content: chunk,

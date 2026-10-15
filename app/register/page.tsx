@@ -25,6 +25,7 @@ export default function RegisterPage() {
     const data = await res.json()
     if (!res.ok) {
       setError(data.error)
+      setLoading(false)
       return
     }
      const result = await signIn('credentials', {
@@ -33,14 +34,12 @@ export default function RegisterPage() {
       password,
     })
 
-    setLoading(false)
 
     if (result?.error) {
       router.push('/login')
       return
     }
     window.location.href = '/dashboard'
-    router.push('/login')
   }
 
   return (

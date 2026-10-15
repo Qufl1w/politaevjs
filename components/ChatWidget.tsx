@@ -21,10 +21,16 @@ useEffect(() => {
     setLoading(true)
     setMessages((m) => [...m, { role: 'bot', text: '' }])
 
+    try {
     const res = await fetch('/api/chat', {
       method: 'POST',
       body: JSON.stringify({ question, courseId }),
     })
+
+    if (!res.ok) {
+      throw new Error('Сервер ответил ошибкой')
+    }
+
     const reader = res.body!.getReader()
     const decoder = new TextDecoder()
     while (true) {
@@ -38,8 +44,16 @@ useEffect(() => {
         return copy
       })
     }
+  } catch(e) {
+    setMessages((m) => {
+      const copy = [...m]
+      copy[copy.length - 1] = { role: 'bot', text: 'Что-то пошло не так, попробуйте еще раз'}
+      return copy
+    })
+  } finally {
     setLoading(false)
   }
+}
 
   if (!open) {
     return (
