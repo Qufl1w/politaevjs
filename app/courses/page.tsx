@@ -1,13 +1,11 @@
 import Link from 'next/link'
-import { db } from '@/lib/db'
-import { courses } from '@/lib/db/schema'
+import { getCoursesWithLessonCount } from '@/lib/courses'
 
 export default async function CoursesPage() {
-  const allCourses = await db.select().from(courses)
+  const allCourses = await getCoursesWithLessonCount()
 
   const tags: Record<number, string> = { 1: 'JS', 2: 'Node', 3: 'SQL', 4: 'TS', 5: 'React', 6: 'Docker' }
   const levels: Record<number, string> = { 1: 'Начинающий', 2: 'Средний', 3: 'Средний', 4: 'Средний', 5: 'Начинающий', 6: 'Продвинутый' }
-  const lessonCounts: Record<number, number> = { 1: 12, 2: 18, 3: 10, 4: 14, 5: 16, 6: 8 }
 
   return (
     <main style={{ background: '#0f0f0f', minHeight: '100vh', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>
@@ -19,7 +17,6 @@ export default async function CoursesPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <Link href="/courses" style={{ fontSize: 16, color: '#4ade80', textDecoration: 'none' }}>Курсы</Link>
-          <a href="#" style={{ fontSize: 16, color: '#888', textDecoration: 'none' }}>О платформе</a>
           <Link href="/login" style={{ fontSize: 16, color: '#888', textDecoration: 'none' }}>Войти</Link>
           <Link href="/register" style={{ fontSize: 16, color: '#0f0f0f', background: '#4ade80', padding: '6px 14px', borderRadius: 6, fontWeight: 500, textDecoration: 'none' }}>Начать</Link>
         </div>
@@ -42,7 +39,7 @@ export default async function CoursesPage() {
             <Link href={`/courses/${course.id}`} key={course.id} style={{ background: '#141414', border: '0.5px solid #1e1e1e', borderRadius: 12, padding: 24, textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ background: '#1a2e1a', color: '#4ade80', fontSize: 12, padding: '3px 10px', borderRadius: 4 }}>{tags[course.id as number]}</span>
-                <span style={{ fontSize: 12, color: '#555' }}>{lessonCounts[course.id as number]} уроков</span>
+                <span style={{ fontSize: 12, color: '#555' }}>Уроков: {course.lessonCount}</span>
               </div>
               <div style={{ fontSize: 18, fontWeight: 500, color: '#e0e0e0' }}>{course.title}</div>
               <div style={{ fontSize: 13, color: '#555', lineHeight: 1.6, flex: 1 }}>{course.description}</div>
@@ -58,7 +55,7 @@ export default async function CoursesPage() {
       {/* Футер */}
       <footer style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', borderTop: '0.5px solid #1a1a1a', marginTop: 'auto' }}>
         <div style={{ textAlign: 'center', flex: 1 }}>
-          <span style={{ fontSize: 14, color: '#444' }}>PolitaevJS © 2025</span>
+          <span style={{ fontSize: 14, color: '#444' }}>PolitaevJS © 2026</span>
         </div>
         <Link href="/" style={{ fontSize: 16, color: '#4ade80', textDecoration: 'none' }}>На главную →</Link>
       </footer>

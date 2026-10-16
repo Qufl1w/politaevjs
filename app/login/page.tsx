@@ -89,7 +89,7 @@ export default function LoginPage() {
       </section>
 
       <footer style={{ padding: '16px 24px', display: 'flex', justifyContent: 'center', borderTop: '0.5px solid #1a1a1a' }}>
-        <span style={{ fontSize: 14, color: '#444' }}>PolitaevJS © 2025</span>
+        <span style={{ fontSize: 14, color: '#444' }}>PolitaevJS © 2026</span>
       </footer>
     </main>
   )
