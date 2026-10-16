@@ -74,6 +74,7 @@ docker-compose up -d
 ### 5. Таблицы и данные
 Нужны запущенные база и Ollama. Подставьте POSTGRES_USER и POSTGRES_DB из вашего .env:
 
+cd politaevjs
 docker exec -it politaevjs_db psql -U admin -d politaevjs -c "CREATE EXTENSION IF NOT EXISTS vector;" (если указали в .env другие значения, подставьте свои)
 npx drizzle-kit push
 npx tsx lib/db/seed.ts
