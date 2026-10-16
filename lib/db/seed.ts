@@ -1,9 +1,12 @@
+import dotenv from 'dotenv'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { courses, lessons } from './schema'
 
+dotenv.config({path: 'env.local' })
+
 const pool = new Pool({
-  connectionString: 'postgresql://admin:123@localhost:5432/kursovaya',
+  connectionString: process.env.DATABASE_URL,
 })
 
 const db = drizzle(pool)

@@ -4,7 +4,7 @@
 
 ## Стек технологий
 
-- **Framework:** Next.js 15+ (App Router, Server Components)
+- **Framework:** Next.js 16 (App Router, Server Components)
 - **Language:** TypeScript
 - **Database:** PostgreSQL + pgvector (векторный поиск)
 - **ORM:** Drizzle ORM
@@ -20,12 +20,12 @@
 3. Найденный контекст передаётся LLM, которая отвечает **строго** на основе материалов курса, без использования общих знаний
 4. Ответ стримится в интерфейс по мере генерации
 
-## рхитектура проекта
+## Архитектура проекта
 
 - `/app` - маршрутизация, страницы и API-эндпоинты (Next.js App Router)
 - `/components` - переиспользуемые UI-компоненты
 - `/lib` - утилиты, конфигурация базы данных и Ollama
-- `/scripts` - скрипты для миграций и сидинга базы данных
+- `/scripts` - скрипты для наполнения базы, эмбеддингов и проверки качества (eval)"
 
 ## Качество ответов
 
@@ -54,18 +54,39 @@ npm install
 \`\`\`
 
 ### 3. Настройка переменных окружения
-Создайте `.env` и `.env.local` на основе `.env.example` (если его нет — создайте с `DATABASE_URL`, `AUTH_SECRET`, `OLLAMA_URL`)
+Создайте в корне два файла.
+
+`.env` (docker-compose, значения можно придумать свои):
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=change_me
+POSTGRES_DB=politaevjs
+
+`.env.local` (приложение, логин, пароль и имя базы должны совпадать с `.env`):
+DATABASE_URL=postgresql://admin:change_me@localhost:5432/politaevjs
+AUTH_SECRET=случайная-строка
+OLLAMA_URL=http://localhost:11434
 
 ### 4. Запуск базы данных
 \`\`\`bash
 docker-compose up -d
 \`\`\`
 
-### 5. Запуск сервера для разработки
+### 5. Таблицы и данные
+Нужны запущенные база и Ollama. Подставьте POSTGRES_USER и POSTGRES_DB из вашего .env:
+
+docker exec -it politaevjs_db psql -U admin -d politaevjs -c "CREATE EXTENSION IF NOT EXISTS vector;" (если указали в .env другие значения, подставьте свои)
+npx drizzle-kit push
+npx tsx lib/db/seed.ts
+npm run fill-content
+npm run embed
+
+### 6. Запуск сервера для разработки
 \`\`\`bash
 npm run dev
 \`\`\`
 Приложение будет доступно по адресу `http://localhost:3000`
 
 ### Требования
-Для работы чат-ассистента локально установите [Ollama](https://ollama.com) и скачайте модель `qwen2.5:14b`
+Установите [Ollama] (https://ollama.com) и скачайте модели:
+ollama pull qwen2.5:14b
+ollama pull nomic-embed-text
