@@ -5,7 +5,6 @@ export default async function CoursesPage() {
   const allCourses = await getCoursesWithLessonCount()
 
   const tags: Record<number, string> = { 1: 'JS', 2: 'Node', 3: 'SQL', 4: 'TS', 5: 'React', 6: 'Docker' }
-  const levels: Record<number, string> = { 1: 'Начинающий', 2: 'Средний', 3: 'Средний', 4: 'Средний', 5: 'Начинающий', 6: 'Продвинутый' }
 
   return (
     <main style={{ background: '#0f0f0f', minHeight: '100vh', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>
@@ -43,8 +42,7 @@ export default async function CoursesPage() {
               </div>
               <div style={{ fontSize: 18, fontWeight: 500, color: '#e0e0e0' }}>{course.title}</div>
               <div style={{ fontSize: 13, color: '#555', lineHeight: 1.6, flex: 1 }}>{course.description}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                <span style={{ fontSize: 12, color: '#555', background: '#1a1a1a', padding: '3px 10px', borderRadius: 4, border: '0.5px solid #2a2a2a' }}>{levels[course.id as number]}</span>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
                 <span style={{ fontSize: 13, color: '#4ade80' }}>Перейти →</span>
               </div>
             </Link>
