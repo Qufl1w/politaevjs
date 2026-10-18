@@ -12,14 +12,15 @@ if (!Number.isInteger(courseId) || courseId < 1) {
   redirect('/courses')
 }
 
-  const courseResult = await db.select().from(courses).where(eq(courses.id, Number(id)))
+
+  const courseResult = await db.select().from(courses).where(eq(courses.id, courseId))
   const course = courseResult[0]
 
   if (!course) {
     redirect('/courses')
   }
 
-  const courseLessons = await db.select().from(lessons).where(eq(lessons.courseId, courseId))
+  const courseLessons = await db.select().from(lessons).where(eq(lessons.courseId, courseId)).orderBy(lessons.order)
 
   return (
     <main style={{ background: '#0f0f0f', minHeight: '100vh', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>
@@ -56,12 +57,12 @@ if (!Number.isInteger(courseId) || courseId < 1) {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {courseLessons.map((lesson, index) => (
-                  <div key={lesson.id} style={{ background: '#141414', border: '0.5px solid #1e1e1e', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Link key={lesson.id} href={`/courses/${course.id}/lessons/${lesson.id}`} style={{ background: '#141414', border: '0.5px solid #1e1e1e', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <span style={{ fontSize: 13, color: '#333', minWidth: 20 }}>{index + 1}</span>
                       <span style={{ fontSize: 15, color: '#e0e0e0' }}>{lesson.title}</span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
