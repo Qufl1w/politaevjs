@@ -33,7 +33,7 @@ async function main() {
 await db.delete(lessonChunks).where(eq(lessonChunks.lessonId, lesson.id))
 
     for (const chunk of chunks) {
-      const embedding = await getEmbedding('search_document' + chunk)
+      const embedding = await getEmbedding('search_document: ' + chunk)
       await db.insert(lessonChunks).values({
         lessonId: lesson.id,
         content: chunk,
