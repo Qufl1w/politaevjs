@@ -42,3 +42,8 @@ export const lessonChunks = pgTable('lesson_chunks', {
 }, (t) => [
   index('embedding_hnsw_idx').using('hnsw', t.embedding.op('vector_cosine_ops')),
 ])
+export const chatUsage = pgTable('chat_usage', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})

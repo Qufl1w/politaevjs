@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 import { lessons, lessonChunks } from '../lib/db/schema'
-import { getEmbedding } from '../lib/ollama'
+import { getEmbedding } from '../lib/embeddings'
 
 function chunkText(text: string, maxLen = 500): string[] {
   const sentences = text.split(/(?<=[.!?])\s+/)
@@ -33,7 +33,7 @@ async function main() {
 await db.delete(lessonChunks).where(eq(lessonChunks.lessonId, lesson.id))
 
     for (const chunk of chunks) {
-      const embedding = await getEmbedding('search_document: ' + chunk)
+      const embedding = await getEmbedding(chunk, 'document')
       await db.insert(lessonChunks).values({
         lessonId: lesson.id,
         content: chunk,

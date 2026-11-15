@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 import { lessons, lessonChunks } from '../lib/db/schema'
-import { getEmbedding } from '../lib/ollama'
+import { getEmbedding } from '../lib/embeddings'
 import { cosineDistance, sql, desc, eq } from 'drizzle-orm/sql'
 import { cases } from './eval-cases'
 
@@ -10,7 +10,7 @@ async function main() {
   const results: { expect: string; score: number }[] = []
 
   for (const c of cases) {
-    const questionEmbedding = await getEmbedding('search_query: ' + c.q.toLowerCase())
+    const questionEmbedding = await getEmbedding(c.q.toLowerCase(), 'query')
     const similarity = sql<number>`1 - (${cosineDistance(lessonChunks.embedding, questionEmbedding)})`
 
     const rows = await db

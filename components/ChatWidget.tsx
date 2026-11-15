@@ -27,6 +27,16 @@ useEffect(() => {
       body: JSON.stringify({ question, courseId }),
     })
 
+    if ([400, 401, 429].includes(res.status)) {
+      const msg = await res.text()
+      setMessages((m) => {
+        const copy = [...m]
+        copy[copy.length - 1] = { role: 'bot', text: msg }
+        return copy
+      })
+      return
+    }
+
     if (!res.ok) {
       throw new Error('Сервер ответил ошибкой')
     }
@@ -83,6 +93,7 @@ useEffect(() => {
       
       <div style={{ padding: 12, borderTop: '0.5px solid #1e1e1e', display: 'flex', gap: 8 }}>
         <input
+          maxLength={300}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}
