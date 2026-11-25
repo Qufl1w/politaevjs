@@ -9,7 +9,7 @@
 - **Database:** PostgreSQL + pgvector (векторный поиск)
 - **ORM:** Drizzle ORM
 - **Authentication:** Auth.js (NextAuth v5, Credentials Provider)
-- **AI/LLM:** RAG-пайплайн с косинусным сходством. эмбеддинги: Gemini API (`gemini-embedding-001`, 768). ответы: локальная Ollama или Groq (`qwen/qwen3.8-27b`), переключается переменной `LLM_PROVIDER`
+- **AI/LLM:** RAG-пайплайн с косинусным сходством. эмбеддинги: Gemini API (`gemini-embedding-001`, 768). ответы: локальная Ollama или Groq (`openai/gpt-oss-120b`), переключается переменной `LLM_PROVIDER`
 - **Styling:** инлайн-стили (CSS-in-JS)
 - **Environment:** Docker Compose (локальное развертывание БД)
 
@@ -26,77 +26,93 @@
 
 - `/app` - маршрутизация, страницы и API-эндпоинты (Next.js App Router)
 - `/components` - переиспользуемые UI-компоненты
-- `/lib` - утилиты, конфигурация базы данных и Ollama
+- `/lib` - утилиты, конфигурация базы данных, вызовы Gemini API для эмбеддингов
 - `/scripts` - скрипты для наполнения базы, эмбеддингов и проверки качества (eval)
 
 ## Качество ответов
 
-тест: `npm run eval:chat` - 32 вопроса по трём курсам через `/api/chat`:
-17 с ответом (по урокам или по описанию курса) и 15 без ответа в уроках,
-в том числе «соседних» по теме
+тест: `npm run eval:chat` - 32 вопроса по трём курсам через `/api/chat`: 17 с ответом (по урокам или по описанию курса) и 15 без ответа в уроках, в том числе «соседних» по теме
 
-- вопросы с ответом: бот отвечает на 17 из 17
-- вопросы без ответа в уроках: бот отказывает в 14 из 15
+результат на Groq (`openai/gpt-oss-120b`, `LIMITS_ENABLED=false`): 31 из 32. Вопросы без ответа: отказ в 15 из 15, включая «соседние». Вопросы с ответом: бот отвечает на 16 из 17
 
-известное ограничение: если в уроке есть похожий пример (например, `app.get`),
-бот может достроить ответ по аналогии (`app.post`), хотя в материалах этого нет,
-результаты слегка плавают между запусками...
+известное ограничение: на вопрос «Как работает цикл while?» бот отвечает нестабильно. при ручной проверке из 6 попыток ответил 1 раз, хотя нужный фрагмент урока находится (сходство 0.73): модель считает объяснение слишком коротким и отказывает. правки промпта и температуры это не исправили
 
-замер сделан на локальной Ollama (`qwen2.5:14b`) с `LIMITS_ENABLED=false`
+для сравнения, на локальной Ollama (`qwen2.5:14b`) с прежним промптом: 17 из 17 и 14 из 15 (единственный промах: достраивал `app.post` по аналогии с `app.get`). с текущим промптом на Ollama замер не повторялся. результаты слегка плавают между запусками
 
 ## Локальное развертывание
 
 ### 1. Клонирование репозитория
-\`\`\`bash
+
+```bash
 git clone https://github.com/Qufl1w/politaevjs.git
 cd politaevjs
-\`\`\`
+```
 
 ### 2. Установка зависимостей
-\`\`\`bash
+
+```bash
 npm install
-\`\`\`
+```
 
 ### 3. Настройка переменных окружения
+
 Создайте в корне два файла.
 
-`.env` (docker-compose, значения можно придумать свои):
+`.env` (для docker-compose, значения можно придумать свои):
+
+```env
 POSTGRES_USER=admin
 POSTGRES_PASSWORD=change_me
 POSTGRES_DB=politaevjs
+```
 
+`.env.local` (для приложения):
+
+```env
 DATABASE_URL=postgresql://admin:change_me@localhost:5432/politaevjs
 AUTH_SECRET=случайная-строка
 GEMINI_API_KEY=ключ из aistudio.google.com
 LLM_PROVIDER=ollama
 OLLAMA_URL=http://localhost:11434
 LIMITS_ENABLED=false
+```
 
-чтобы отвечать через Groq вместо Ollama: `LLM_PROVIDER=groq`, `GROQ_API_KEY=ваш_ключ`, `GROQ_MODEL=qwen/qwen3.8-27b`. для продакшена включите `LIMITS_ENABLED=true`. `HTTPS_PROXY` необязателен: если задан, запросы к внешним API идут через него.
+Чтобы отвечать через Groq вместо Ollama: `LLM_PROVIDER=groq`, `GROQ_API_KEY=ваш_ключ`, `GROQ_MODEL=openai/gpt-oss-120b`. Для продакшена включите `LIMITS_ENABLED=true`. `HTTPS_PROXY` необязателен: если задан, запросы к внешним API идут через него.
 
 ### 4. Запуск базы данных
-\`\`\`bash
+
+```bash
 docker-compose up -d
-\`\`\`
+```
 
 ### 5. Таблицы и данные
-Нужны запущенные база и Ollama. Подставьте POSTGRES_USER и POSTGRES_DB из вашего .env:
-если указали в .env другие значения, подставьте свои
-`seed` запускайте один раз, иначе курсы продублируются
 
+Нужны запущенная база данных и `GEMINI_API_KEY` в `.env.local` (он используется при запуске `npm run embed`).
+
+- если указали в `.env` другие значения `POSTGRES_USER` и `POSTGRES_DB`, подставьте их в первую команду вместо `admin` и `politaevjs`
+- команду `seed` запускайте только один раз, иначе курсы в базе продублируются
+
+```bash
 docker exec -it politaevjs_db psql -U admin -d politaevjs -c "CREATE EXTENSION IF NOT EXISTS vector;"
 npx drizzle-kit push
 npx tsx lib/db/seed.ts
 npm run fill-content
 npm run embed
+```
 
 ### 6. Запуск сервера для разработки
-\`\`\`bash
+
+```bash
 npm run dev
-\`\`\`
+```
+
 Приложение будет доступно по адресу `http://localhost:3000`
 
 ### Требования
-для режима `LLM_PROVIDER=ollama` установите [Ollama](https://ollama.com) и скачайте модель:
+Для режима `LLM_PROVIDER=ollama` установите [Ollama](https://ollama.com) и скачайте модель:
+
+```bash
 ollama pull qwen2.5:14b
-модель `nomic-embed-text` больше не нужна: эмбеддинги считает Gemini API!!!
+```
+
+Модель `nomic-embed-text` больше не нужна: эмбеддинги считает Gemini API.

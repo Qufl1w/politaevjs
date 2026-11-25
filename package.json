@@ -21,7 +21,8 @@
     "next-auth": "^5.0.0-beta.31",
     "pg": "^8.21.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "undici": "^8.12.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -35,7 +36,6 @@
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
-    "typescript": "^5",
-    "undici": "^8.12.4"
+    "typescript": "^5"
   }
 }

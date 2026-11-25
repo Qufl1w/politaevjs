@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { getCoursesWithLessonCount } from '@/lib/courses'
 
+
+export const dynamic = 'force-dynamic'
 export default async function CoursesPage() {
   const allCourses = await getCoursesWithLessonCount()
 

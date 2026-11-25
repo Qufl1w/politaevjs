@@ -1,21 +1,27 @@
-import { NextRequest } from 'next/server'
-import { lessonChunks, lessons, courses, users, chatUsage } from '@/lib/db/schema'
-import { cosineDistance, sql, gt, desc, and, eq } from 'drizzle-orm/sql'
-import { getEmbedding } from '@/lib/embeddings'
-import { auth } from '@/auth'
-import { count, gte } from 'drizzle-orm'
+import { NextRequest } from "next/server";
+import {
+  lessonChunks,
+  lessons,
+  courses,
+  users,
+  chatUsage,
+} from "@/lib/db/schema";
+import { cosineDistance, sql, gt, desc, and, eq } from "drizzle-orm/sql";
+import { getEmbedding } from "@/lib/embeddings";
+import { auth } from "@/auth";
+import { count, gte } from "drizzle-orm";
 
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434'
-const MIN_SIMILARITY = 0.6
-const MAX_QUESTION_LENGTH = 300
-const USER_LIMIT_PER_HOUR = 10
-const GLOBAL_LIMIT_PER_DAY = 50
+const OLLAMA_URL = process.env.OLLAMA_URL || "http://localhost:11434";
+const MIN_SIMILARITY = 0.6;
+const MAX_QUESTION_LENGTH = 300;
+const USER_LIMIT_PER_HOUR = 10;
+const GLOBAL_LIMIT_PER_DAY = 50;
 
 function buildLessonPrompt(context: string): string {
   return `ты - дружелюбный ассистент образовательной платформы PolitaevJS. Объясняешь материал простым языком, как хороший преподаватель
 СТРОГИЕ ПРАВИЛА:
 1. отвечай ИСКЛЮЧИТЕЛЬНО используя факты из контекста ниже. всё, чего в контексте нет, для тебя не существует, даже если ты это знаешь
-2. сначала проверь: есть ли в контексте объяснение именно того, о чём спрашивают? Соседняя тема не считается: если в контексте говорится о чём-то похожем, но не об этом, ответа нет
+2. сначала проверь: есть ли в контексте объяснение именно того, о чём спрашивают? Ответ есть, если то самое понятие названо в контексте и описано словами или показано в примере кода, пусть даже коротко. Ответа нет, если в контексте только соседнее понятие: например, спросили про функцию map, а в контексте описан только filter
 3. если ответ в контексте есть - дай понятный ответ в 2-4 предложениях: объясни своими словами и приведи пример из контекста, если он там есть
 4. если ответа нет - не пытайся угадать, не используй общие знания и не давай советов. ТОЛЬКО В ЭТОМ СЛУЧАЕ ответь одной этой фразой и больше ничего не добавляй: "К сожалению, в материалах этого курса нет прямого ответа на ваш вопрос."
 5. никогда не переключайся на китайский, английский или другой язык.
@@ -23,7 +29,7 @@ function buildLessonPrompt(context: string): string {
 Контекст из уроков:
 ${context}
 
-Напоминание: если в контексте выше нет объяснения именно того, о чём спросили, ответь только фразой-отказом`
+Напоминание: сначала найди в контексте выше то, о чём спросили. Если нашёл, отвечай по нему. Фразу-отказ используй, только если этого в контексте нет совсем`;
 }
 
 function buildCoursePrompt(courseInfo: string): string {
@@ -35,280 +41,357 @@ function buildCoursePrompt(courseInfo: string): string {
 4. никогда не переключайся на китайский, английский или другой язык
 
 Информация о курсе:
-${courseInfo}`
+${courseInfo}`;
 }
 
 async function* streamOllama(question: string, systemPrompt: string) {
-  
-
   const res = await fetch(`${OLLAMA_URL}/api/chat`, {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify({
-      model: 'qwen2.5:14b',
+      model: "qwen2.5:14b",
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: question },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question },
       ],
       stream: true,
       options: {
-      temperature: 0.2,
+        temperature: 0.2,
       },
     }),
-  })
+  });
 
-if (!res.ok) {
-  throw new Error(`Ollama chat error: ${res.status} ${await res.text()}`)
-}
+  if (!res.ok) {
+    throw new Error(`Ollama chat error: ${res.status} ${await res.text()}`);
+  }
 
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
   while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() || ''
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
     for (const line of lines) {
-      if (!line.trim()) continue
-      const json = JSON.parse(line)
-      if (json.message?.content) yield json.message.content
+      if (!line.trim()) continue;
+      const json = JSON.parse(line);
+      if (json.message?.content) yield json.message.content;
     }
   }
 }
 
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-const model = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b'
+const model = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
+async function fetchGroq(body: string): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body,
+    });
+    if (res.status === 503 && attempt < 2) {
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+      continue;
+    }
+    return res;
+  }
+}
+
 async function* streamGroq(question: string, systemPrompt: string) {
-  const res = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
+  const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+  const res = await fetchGroq(
+    JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: question },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question },
       ],
       stream: true,
       temperature: 0.2,
-      max_tokens: 400,
-      ...(model.startsWith('qwen/') ? { reasoning_effort: 'none' } : {}),
+      max_tokens: model.startsWith('openai/gpt-oss') ? 1000 : 400,
+    ...(model.startsWith('qwen/') ? { reasoning_effort: 'none' } : {}),
+    ...(model.startsWith('openai/gpt-oss') ? { reasoning_effort: 'low', include_reasoning: false } : {}),
     }),
-  })
+  );
 
   if (!res.ok) {
-    throw new Error(`Groq chat error: ${res.status} ${await res.text()}`)
+    throw new Error(`Groq chat error: ${res.status} ${await res.text()}`);
   }
 
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
   while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() || ''
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
     for (const line of lines) {
-      if (!line.startsWith('data: ')) continue
-      const data = line.slice(6).trim()
-      if (data === '[DONE]') return
-      const token = JSON.parse(data).choices?.[0]?.delta?.content
-      if (token) yield token
+      if (!line.startsWith("data: ")) continue;
+      const data = line.slice(6).trim();
+      if (data === "[DONE]") return;
+      const token = JSON.parse(data).choices?.[0]?.delta?.content;
+      if (token) yield token;
     }
   }
 }
 
 // переключатель: смотрит в .env.local
 function streamChatAnswer(question: string, systemPrompt: string) {
-  return process.env.LLM_PROVIDER === 'groq'
+  return process.env.LLM_PROVIDER === "groq"
     ? streamGroq(question, systemPrompt)
-    : streamOllama(question, systemPrompt)
+    : streamOllama(question, systemPrompt);
 }
 
 const termMap: Record<string, string> = {
-  'джаваскрипт': 'javascript',
-  'джс': 'js',
-  'реакт': 'react',
-  'нод': 'node',
-  'ноджс': 'node.js',
-  'экспресс': 'express',
-  'докер': 'docker',
-  'постгрес': 'postgresql',
-  'постгре': 'postgresql',
-  'типскрипт': 'typescript',
-  'тайпскрипт': 'typescript',
-}
+  джаваскрипт: "javascript",
+  джс: "js",
+  реакт: "react",
+  нод: "node",
+  ноджс: "node.js",
+  экспресс: "express",
+  докер: "docker",
+  постгрес: "postgresql",
+  постгре: "postgresql",
+  типскрипт: "typescript",
+  тайпскрипт: "typescript",
+};
 
 // сделал сортировку по убыванию длины ключа для слов выше
 function normalizeQuestion(question: string): string {
-  let result = question.toLowerCase()
+  let result = question.toLowerCase();
 
   const sortedEntries = Object.entries(termMap).sort(
-    ([a], [b]) => b.length - a.length
-  )
+    ([a], [b]) => b.length - a.length,
+  );
 
   for (const [ru, en] of sortedEntries) {
-    result = result.replaceAll(ru, en)
+    result = result.replaceAll(ru, en);
   }
-  return result
+  return result;
 }
 
-const greetings = ['привет', 'здравствуй', 'здравствуйте', 'хай', 'йо', 'добрый день', 'добрый вечер', 'как дела']
-const sortedGreetings = [...greetings].sort((a, b) => b.length - a.length)
+const greetings = [
+  "привет",
+  "здравствуй",
+  "здравствуйте",
+  "хай",
+  "йо",
+  "добрый день",
+  "добрый вечер",
+  "как дела",
+];
+const sortedGreetings = [...greetings].sort((a, b) => b.length - a.length);
 
 function isPureGreeting(question: string): boolean {
-  let cleaned = question.toLowerCase().trim()
+  let cleaned = question.toLowerCase().trim();
   for (const g of sortedGreetings) {
-    cleaned = cleaned.replaceAll(g, '')
+    cleaned = cleaned.replaceAll(g, "");
   }
   // убираем знаки препинания и пробелы, что осталось
-  cleaned = cleaned.replace(/[,.!?\s]/g, '')
+  cleaned = cleaned.replace(/[,.!?\s]/g, "");
   // если после удаления приветствий почти ничего не осталось - это чистое приветствие
-  return cleaned.length === 0
+  return cleaned.length === 0;
 }
 
-
-
-const courseForms = ['курс', 'курса', 'курсе', 'курсу', 'курсом', 'курсы', 'курсов', 'курсам', 'курсах']
-const courseWords = ['подойд', 'подходит', 'новичк', 'с чего начать', 'для кого', 'чему научу', 'чему научит', 'что я узнаю']
+const courseForms = [
+  "курс",
+  "курса",
+  "курсе",
+  "курсу",
+  "курсом",
+  "курсы",
+  "курсов",
+  "курсам",
+  "курсах",
+];
+const courseWords = [
+  "подойд",
+  "подходит",
+  "новичк",
+  "с чего начать",
+  "для кого",
+  "чему научу",
+  "чему научит",
+  "что я узнаю",
+];
 
 function isAboutCourse(question: string): boolean {
-  const q = question.toLowerCase()
-  const words = q.split(/[^а-яёa-z]+/)
+  const q = question.toLowerCase();
+  const words = q.split(/[^а-яёa-z]+/);
 
-  for(const form of courseForms) {
-    if (words.includes(form)) return true
+  for (const form of courseForms) {
+    if (words.includes(form)) return true;
   }
   for (const w of courseWords) {
-    if (q.includes(w)) return true
+    if (q.includes(w)) return true;
   }
-  return false
+  return false;
 }
 
 function streamResponse(question: string, systemPrompt: string): Response {
   const stream = new ReadableStream({
     async start(controller) {
-      const encoder = new TextEncoder()
+      const encoder = new TextEncoder();
       try {
         for await (const token of streamChatAnswer(question, systemPrompt)) {
-          controller.enqueue(encoder.encode(token))
+          controller.enqueue(encoder.encode(token));
         }
       } catch (e) {
-        console.error(e)
-        const msg = String(e).includes(' 429 ')
-          ? 'Ассистент сейчас перегружен, попробуйте через минуту.'
-          : 'Ассистент сейчас недоступен, попробуйте позже.'
-        controller.enqueue(encoder.encode(msg))
+        console.error(e);
+        const msg =
+          String(e).includes(" 429 ") || String(e).includes(" 503 ")
+            ? "Ассистент сейчас перегружен, попробуйте через минуту."
+            : "Ассистент сейчас недоступен, попробуйте позже.";
+        controller.enqueue(encoder.encode(msg));
       }
-      controller.close()
+      controller.close();
     },
-  })
-  return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+  });
+  return new Response(stream, {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
 }
 
 function textResponse(text: string, status: number): Response {
   return new Response(text, {
     status,
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-  })
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
 }
 
 export async function POST(req: NextRequest) {
-  const { question, courseId } = await req.json()
-    if (typeof question !== 'string' || question.trim().length === 0 || question.length > MAX_QUESTION_LENGTH) {
-    return textResponse(`Вопрос должен быть от 1 до ${MAX_QUESTION_LENGTH} символов`, 400)
+  const { question, courseId } = await req.json();
+  if (
+    typeof question !== "string" ||
+    question.trim().length === 0 ||
+    question.length > MAX_QUESTION_LENGTH
+  ) {
+    return textResponse(
+      `Вопрос должен быть от 1 до ${MAX_QUESTION_LENGTH} символов`,
+      400,
+    );
   }
 
   if (isPureGreeting(question)) {
-    return new Response('Привет! Я помогу разобраться с материалами этого курса. Спрашивай что угодно по темам уроков', {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    })
+    return new Response(
+      "Привет! Я помогу разобраться с материалами этого курса. Спрашивай что угодно по темам уроков",
+      {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      },
+    );
   }
 
-  const { db } = await import('@/lib/db')
-    if (process.env.LIMITS_ENABLED === 'true') {
-    const session = await auth()
-    const email = session?.user?.email
+  const { db } = await import("@/lib/db");
+  if (process.env.LIMITS_ENABLED === "true") {
+    const session = await auth();
+    const email = session?.user?.email;
     if (!email) {
-      return textResponse('Войдите в аккаунт, чтобы пользоваться ассистентом', 401)
+      return textResponse(
+        "Войдите в аккаунт, чтобы пользоваться ассистентом",
+        401,
+      );
     }
 
-    const [dbUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
+    const [dbUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email));
     if (!dbUser) {
-      return textResponse('Войдите в аккаунт, чтобы пользоваться ассистентом', 401)
+      return textResponse(
+        "Войдите в аккаунт, чтобы пользоваться ассистентом",
+        401,
+      );
     }
 
-    const hourAgo = new Date(Date.now() - 60 * 60 * 1000)
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const [userStat] = await db
       .select({ n: count() })
       .from(chatUsage)
-      .where(and(eq(chatUsage.userId, dbUser.id), gte(chatUsage.createdAt, hourAgo)))
+      .where(
+        and(eq(chatUsage.userId, dbUser.id), gte(chatUsage.createdAt, hourAgo)),
+      );
     if (userStat.n >= USER_LIMIT_PER_HOUR) {
-      return textResponse('Вы задали слишком много вопросов за час. Попробуйте чуть позже', 429)
+      return textResponse(
+        "Вы задали слишком много вопросов за час. Попробуйте чуть позже",
+        429,
+      );
     }
 
     const [globalStat] = await db
       .select({ n: count() })
       .from(chatUsage)
-      .where(gte(chatUsage.createdAt, dayAgo))
+      .where(gte(chatUsage.createdAt, dayAgo));
     if (globalStat.n >= GLOBAL_LIMIT_PER_DAY) {
-      return textResponse('На сегодня лимит ассистента исчерпан. Загляните завтра', 429)
+      return textResponse(
+        "На сегодня лимит ассистента исчерпан. Загляните завтра",
+        429,
+      );
     }
 
-    await db.insert(chatUsage).values({ userId: dbUser.id })
+    await db.insert(chatUsage).values({ userId: dbUser.id });
   }
 
   // вопрос про сам курс: отвечаем по названию, описанию и программе
   if (isAboutCourse(question)) {
-    const courseRows = await db.select().from(courses).where(eq(courses.id, Number(courseId)))
-    const course = courseRows[0]
+    const courseRows = await db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, Number(courseId)));
+    const course = courseRows[0];
     if (!course) {
-      return new Response('Курс не найден', { status: 404 })
+      return new Response("Курс не найден", { status: 404 });
     }
 
     const lessonRows = await db
       .select({ title: lessons.title })
       .from(lessons)
       .where(eq(lessons.courseId, Number(courseId)))
-      .orderBy(lessons.order)
+      .orderBy(lessons.order);
 
-    const program = lessonRows.map((l, i) => `${i + 1}. ${l.title}`).join('\n')
-    const courseInfo = `Название: ${course.title}\nОписание: ${course.description}\nПрограмма:\n${program}`
+    const program = lessonRows.map((l, i) => `${i + 1}. ${l.title}`).join("\n");
+    const courseInfo = `Название: ${course.title}\nОписание: ${course.description}\nПрограмма:\n${program}`;
 
-    return streamResponse(question, buildCoursePrompt(courseInfo))
+    return streamResponse(question, buildCoursePrompt(courseInfo));
   }
 
   // вопрос по содержанию уроков: ищем подходящие куски
-  const normalizedQuestion = normalizeQuestion(question)
-  const questionEmbedding = await getEmbedding(normalizedQuestion, 'query')
+  const normalizedQuestion = normalizeQuestion(question);
+  const questionEmbedding = await getEmbedding(normalizedQuestion, "query");
 
-  const similarity = sql<number>`1 - (${cosineDistance(lessonChunks.embedding, questionEmbedding)})`
+  const similarity = sql<number>`1 - (${cosineDistance(lessonChunks.embedding, questionEmbedding)})`;
 
   const relevantChunks = await db
     .select({ content: lessonChunks.content, similarity })
     .from(lessonChunks)
     .innerJoin(lessons, eq(lessonChunks.lessonId, lessons.id))
-    .where(and(
-    gt(similarity, MIN_SIMILARITY),
-    eq(lessons.courseId, Number(courseId))
-  ))
+    .where(
+      and(
+        gt(similarity, MIN_SIMILARITY),
+        eq(lessons.courseId, Number(courseId)),
+      ),
+    )
     .orderBy((t) => desc(t.similarity))
-    .limit(5)
+    .limit(5);
 
- if (relevantChunks.length === 0) {
-    return new Response('К сожалению, в материалах этого курса нет прямого ответа на ваш вопрос.', {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    })
+  if (relevantChunks.length === 0) {
+    return new Response(
+      "К сожалению, в материалах этого курса нет прямого ответа на ваш вопрос.",
+      {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      },
+    );
   }
 
-  const context = relevantChunks.map((c) => c.content).join('\n\n---\n\n')
+  const context = relevantChunks.map((c) => c.content).join("\n\n---\n\n");
 
-  return streamResponse(question, buildLessonPrompt(context))
+  return streamResponse(question, buildLessonPrompt(context));
 }

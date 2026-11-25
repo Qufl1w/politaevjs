@@ -13,6 +13,7 @@ async function main() {
   let wrongRefusals = 0 // ответ в уроках был, а бот отказал
   let wrongAnswers = 0  // ответа в уроках нет, а бот ответил
   let tails = 0
+  let errors = 0
 
   for (const c of cases) {
     const res = await fetch(URL, {
@@ -25,8 +26,11 @@ async function main() {
     const text = await res.text()
     const refused = isRefusal(text)
 
-       let verdict = 'OK'
-    if (c.expect === 'refuse' && !refused) {
+    let verdict = 'OK'
+    if (text.includes('Ассистент сейчас')) {
+      verdict = 'ОШИБКА СЕРВИСА'
+      errors++
+    } else if (c.expect === 'refuse' && !refused) {
       verdict = 'ВЫДУМАЛ'
       wrongAnswers++
     } else if (c.expect === 'answer' && refused) {
@@ -40,12 +44,14 @@ async function main() {
     }
 
     console.log(verdict, '|', c.q, '|', text.replace(/\s+/g, ' ').slice(0, 100))
+        await new Promise((r) => setTimeout(r, 8000))
   }
 
   console.log(`\nВерных: ${correct} из ${cases.length}`)
   console.log(`Зря отказал на нормальные вопросы: ${wrongRefusals}`)
   console.log(`Ответил, хотя в уроках ответа нет: ${wrongAnswers}`)
-    console.log(`Отказал, но дописал лишнее: ${tails}`)
+  console.log(`Отказал, но дописал лишнее: ${tails}`)
+  console.log(`Ошибок сервиса (в «верные» не входят): ${errors}`)
 }
 
 main()

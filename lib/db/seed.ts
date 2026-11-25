@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { courses, lessons } from './schema'
 
-dotenv.config({path: 'env.local' })
+dotenv.config({path: '.env.local' })
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
