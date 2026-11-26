@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getCoursesWithLessonCount } from '@/lib/courses'
+import Navbar from '@/components/Navbar'
 
 
 export const dynamic = 'force-dynamic'
@@ -11,17 +12,7 @@ export default async function CoursesPage() {
   return (
     <main style={{ background: '#0f0f0f', minHeight: '100vh', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>
       {/* Навбар */}
-      <nav style={{ background: '#141414', borderBottom: '0.5px solid #1e1e1e', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 9, height: 9, background: '#4ade80', borderRadius: '0%' }} />
-          <Link href="/" style={{ fontSize: 16, fontWeight: 500, color: '#4ade80', textDecoration: 'none' }}>PolitaevJS</Link>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <Link href="/courses" style={{ fontSize: 16, color: '#4ade80', textDecoration: 'none' }}>Курсы</Link>
-          <Link href="/login" style={{ fontSize: 16, color: '#888', textDecoration: 'none' }}>Войти</Link>
-          <Link href="/register" style={{ fontSize: 16, color: '#0f0f0f', background: '#4ade80', padding: '6px 14px', borderRadius: 6, fontWeight: 500, textDecoration: 'none' }}>Начать</Link>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Заголовок */}
       <section style={{ padding: '48px 24px 32px', textAlign: 'center' }}>

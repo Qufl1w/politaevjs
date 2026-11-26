@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { courses, lessons } from '@/lib/db/schema'
+import Navbar from '@/components/Navbar'
 
 export default async function LessonPage({
   params,
@@ -40,17 +41,8 @@ export default async function LessonPage({
 
   return (
     <main style={{ background: '#0f0f0f', minHeight: '100vh', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>
-      <nav style={{ background: '#141414', borderBottom: '0.5px solid #1e1e1e', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 9, height: 9, background: '#4ade80' }} />
-          <Link href="/" style={{ fontSize: 16, fontWeight: 500, color: '#4ade80', textDecoration: 'none' }}>PolitaevJS</Link>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <Link href="/courses" style={{ fontSize: 16, color: '#888', textDecoration: 'none' }}>Курсы</Link>
-          <Link href="/login" style={{ fontSize: 16, color: '#888', textDecoration: 'none' }}>Войти</Link>
-          <Link href="/register" style={{ fontSize: 16, color: '#0f0f0f', background: '#4ade80', padding: '6px 14px', borderRadius: 6, fontWeight: 500, textDecoration: 'none' }}>Начать</Link>
-        </div>
-      </nav>
+      {/* Навбар */}
+      <Navbar />
 
       <div style={{ padding: '16px 24px', borderBottom: '0.5px solid #1a1a1a' }}>
         <Link href={`/courses/${course.id}`} style={{ fontSize: 13, color: '#555', textDecoration: 'none' }}>← {course.title}</Link>
