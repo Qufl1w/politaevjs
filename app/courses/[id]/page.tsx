@@ -4,6 +4,7 @@ import { courses, lessons } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import ChatWidget from '@/components/ChatWidget'
 
 export default async function CoursePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -82,6 +83,9 @@ if (!Number.isInteger(courseId) || courseId < 1) {
             <Link href="/login" style={{ display: 'block', color: '#555', fontSize: 13, textAlign: 'center', marginTop: 12, textDecoration: 'none' }}>
               Уже записан? Войти
             </Link>
+                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '0.5px solid #1e1e1e' }}>
+              <ChatWidget courseId={id} />
+            </div>
           </div>
 
         </div>

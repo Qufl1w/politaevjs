@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect  } from 'react'
+import { IconMessage2 } from '@tabler/icons-react'
 
 export default function ChatWidget({ courseId }: { courseId: string }) {
   const [open, setOpen] = useState(false)
@@ -65,13 +66,15 @@ useEffect(() => {
   }
 }
 
-  if (!open) {
+
+    if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        style={{ position: 'fixed', bottom: 24, right: 24, background: '#4ade80', color: '#0f0f0f', border: 'none', borderRadius: '50%', width: 56, height: 56, fontSize: 24, cursor: 'pointer' }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'transparent', color: '#4ade80', border: '0.5px solid #2d4a2d', borderRadius: 8, padding: '12px', fontSize: 15, fontWeight: 500, cursor: 'pointer' }}
       >
-        💬
+        <IconMessage2 size={20} stroke={2} />
+        Задать вопрос ИИ
       </button>
     )
   }

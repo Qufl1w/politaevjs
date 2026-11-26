@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { courses, lessons } from '@/lib/db/schema'
 import Navbar from '@/components/Navbar'
+import ChatWidget from '@/components/ChatWidget'
 
 export default async function LessonPage({
   params,
@@ -55,6 +56,10 @@ export default async function LessonPage({
         <h1 style={{ fontSize: 30, fontWeight: 500, color: '#f0f0f0', marginBottom: 24, lineHeight: 1.3 }}>{lesson.title}</h1>
         <div style={{ fontSize: 16, color: '#c8c8c8', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
           {lesson.content ?? 'Материал урока скоро появится'}
+        </div>
+
+        <div style={{ maxWidth: 320, marginTop: 32 }}>
+          <ChatWidget courseId={id} />
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 48, gap: 12 }}>
